@@ -3,10 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\Task;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\TaskCategory;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
@@ -16,8 +16,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->seedUsers();
 
+        $categoryIds = $this->seedTaskCategories();
+
+        $this->seedTasks($categoryIds);
+    }
+
+    private function seedUsers(): void
+    {
         User::firstOrCreate(
             ['email' => 'test@example.com'],
             [
@@ -27,16 +34,44 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $tasks = Task::factory()->count(100)->create();
-        $taskCategories = ['Work', 'Personal', 'Shopping', 'Others'];
-        foreach ($taskCategories as $task) {
-            TaskCategory::firstOrCreate(
-                ['name' => $task]
-            );
+        if (User::query()->count() === 1) {
+            User::factory()->count(4)->create();
+        }
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function seedTaskCategories(): array
+    {
+        $labels = ['Work', 'Personal', 'Shopping', 'Others'];
+
+        foreach ($labels as $label) {
+            TaskCategory::firstOrCreate(['name' => $label]);
         }
 
-        foreach ($tasks as $task) {
-            $task->taskCategories()->attach(TaskCategory::inRandomOrder()->first()->id);
+        return TaskCategory::query()->pluck('id')->all();
+    }
+
+    private function seedTasks(array $categoryIds): void
+    {
+        if (empty($categoryIds)) {
+            return;
         }
+
+        if (! Task::query()->exists()) {
+            Task::factory()->count(100)->create();
+        }
+
+        Task::query()
+            ->doesntHave('taskCategories')
+            ->chunkById(50, function ($tasks) use ($categoryIds) {
+                foreach ($tasks as $task) {
+                    $selectionCount = min(random_int(1, 3), count($categoryIds));
+                    $selection = Arr::wrap(Arr::random($categoryIds, $selectionCount));
+
+                    $task->taskCategories()->syncWithoutDetaching($selection);
+                }
+            });
     }
 }
