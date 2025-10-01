@@ -16,19 +16,19 @@ class Task extends Model implements HasMedia
     protected $fillable = [
         'name',
         'is_completed',
-        'due_date'
+        'due_date',
     ];
 
     protected function casts(): array
     {
         return [
             'is_completed' => 'boolean',
-            'due_date' => 'date'
+            'due_date' => 'date',
         ];
     }
 
     protected $appends = [
-        'mediaFile'
+        'mediaFile',
     ];
 
     public function getMediaFileAttribute()

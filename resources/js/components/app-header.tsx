@@ -126,7 +126,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                     key={item.title}
                                                     href={
                                                         typeof item.href ===
-                                                            'string'
+                                                        'string'
                                                             ? item.href
                                                             : item.href.url
                                                     }
@@ -172,11 +172,11 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                             className={cn(
                                                 navigationMenuTriggerStyle(),
                                                 page.url ===
-                                                (typeof item.href ===
+                                                    (typeof item.href ===
                                                     'string'
-                                                    ? item.href
-                                                    : item.href.url) &&
-                                                activeItemStyles,
+                                                        ? item.href
+                                                        : item.href.url) &&
+                                                    activeItemStyles,
                                                 'h-9 cursor-pointer px-3',
                                             )}
                                         >
@@ -217,7 +217,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                 <a
                                                     href={
                                                         typeof item.href ===
-                                                            'string'
+                                                        'string'
                                                             ? item.href
                                                             : item.href.url
                                                     }

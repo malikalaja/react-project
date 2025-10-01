@@ -72,6 +72,7 @@ class TaskController extends Controller
     {
         $task->load(['media', 'taskCategories']);
         $task->append('mediaFile');
+
         return Inertia::render('Tasks/Edit', [
             'task' => $task,
             'categories' => TaskCategory::all(),
@@ -89,6 +90,7 @@ class TaskController extends Controller
             $task->addMedia($request->file('media'))->toMediaCollection();
         }
         $task->taskCategories()->sync($request->validated('categories', []));
+
         return redirect()->route('tasks.index');
     }
 
@@ -98,6 +100,7 @@ class TaskController extends Controller
     public function destroy(Task $task)
     {
         $task->delete();
+
         return redirect()->route('tasks.index');
     }
 }

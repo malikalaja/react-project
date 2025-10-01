@@ -1,36 +1,40 @@
-import * as React from "react";
-import { format } from "date-fns";
-import { ChevronDownIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import InputError from "@/components/input-error";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import InputError from '@/components/input-error';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ChevronDownIcon } from 'lucide-react';
+import * as React from 'react';
 type Props = {
     id?: string;
     name?: string;
     label?: string;
-    value: string | null;                 // 'YYYY-MM-DD' or null
+    value: string | null; // 'YYYY-MM-DD' or null
     onChange: (value: string | null) => void;
     error?: string;
-    placeholder?: string;                 // default: 'Select date'
-    resetLabel?: string;                  // default: 'Reset'
+    placeholder?: string; // default: 'Select date'
+    resetLabel?: string; // default: 'Reset'
     disabled?: boolean;
-    className?: string;                   // wrapper
-    buttonClassName?: string;             // main button classes
-    showReset?: boolean;                  // default: true
+    className?: string; // wrapper
+    buttonClassName?: string; // main button classes
+    showReset?: boolean; // default: true
 };
 
 export function DatePickerField({
-    id = "date",
+    id = 'date',
     name,
     label,
     value,
     onChange,
     error,
-    placeholder = "Select date",
-    resetLabel = "Reset",
+    placeholder = 'Select date',
+    resetLabel = 'Reset',
     disabled,
     className,
     buttonClassName,
@@ -41,11 +45,11 @@ export function DatePickerField({
     // Convert string 'YYYY-MM-DD' -> Date at local noon to avoid TZ rollback
     const selectedDate = React.useMemo(
         () => (value ? new Date(`${value}T12:00:00`) : undefined),
-        [value]
+        [value],
     );
 
     return (
-        <div className={cn?.("grid gap-2", className) ?? `grid gap-2`}>
+        <div className={cn?.('grid gap-2', className) ?? `grid gap-2`}>
             {label && (
                 <Label htmlFor={id} className="px-1">
                     {label}
@@ -62,9 +66,14 @@ export function DatePickerField({
                             id={id}
                             name={name}
                             disabled={disabled}
-                            className={cn?.("w-48 justify-between font-normal", buttonClassName) ?? "w-48 justify-between font-normal"}
+                            className={
+                                cn?.(
+                                    'w-48 justify-between font-normal',
+                                    buttonClassName,
+                                ) ?? 'w-48 justify-between font-normal'
+                            }
                         >
-                            {value ? format(value, "yyyy-MM-dd") : placeholder}
+                            {value ? format(value, 'yyyy-MM-dd') : placeholder}
                             <ChevronDownIcon />
                         </Button>
                     </PopoverTrigger>
@@ -82,13 +91,18 @@ export function DatePickerField({
                     )}
                 </div>
 
-                <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                <PopoverContent
+                    className="w-auto overflow-hidden p-0"
+                    align="start"
+                >
                     <Calendar
                         mode="single"
                         captionLayout="dropdown"
                         selected={selectedDate}
                         onSelect={(picked) => {
-                            onChange(picked ? format(picked, "yyyy-MM-dd") : null);
+                            onChange(
+                                picked ? format(picked, 'yyyy-MM-dd') : null,
+                            );
                             setOpen(false);
                         }}
                     />

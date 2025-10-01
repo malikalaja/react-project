@@ -21,7 +21,9 @@ type EditTaskCategoryForm = {
 export default function Edit({ taskCategory }: { taskCategory: TaskCategory }) {
     const taskCategoryName = useRef<HTMLInputElement>(null);
 
-    const { data, setData, errors, put, reset, processing } = useForm<Required<EditTaskCategoryForm>>({
+    const { data, setData, errors, put, reset, processing } = useForm<
+        Required<EditTaskCategoryForm>
+    >({
         name: taskCategory.name,
     });
 

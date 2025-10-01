@@ -1,18 +1,30 @@
-import { PaginationEllipsis, PaginationItem, PaginationLink } from '@/components/ui/pagination';
+import {
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+} from '@/components/ui/pagination';
 import { JSX } from 'react';
 
 type PaginationLink = {
     url: string;
     label: string;
-}
+};
 
-export const generatePaginationLinks = (currentPage: number, totalPages: number, path: string, links: PaginationLink[]) => {
+export const generatePaginationLinks = (
+    currentPage: number,
+    totalPages: number,
+    path: string,
+    links: PaginationLink[],
+) => {
     const pages: JSX.Element[] = [];
     if (totalPages <= 6) {
         for (let i = 1; i <= totalPages; i++) {
             pages.push(
                 <PaginationItem key={i}>
-                    <PaginationLink href={links[i].url} isActive={i === currentPage}>
+                    <PaginationLink
+                        href={links[i].url}
+                        isActive={i === currentPage}
+                    >
                         {i}
                     </PaginationLink>
                 </PaginationItem>,
@@ -22,7 +34,10 @@ export const generatePaginationLinks = (currentPage: number, totalPages: number,
         for (let i = 1; i <= 2; i++) {
             pages.push(
                 <PaginationItem key={i}>
-                    <PaginationLink href={links[i].url} isActive={i === currentPage}>
+                    <PaginationLink
+                        href={links[i].url}
+                        isActive={i === currentPage}
+                    >
                         {i}
                     </PaginationLink>
                 </PaginationItem>,
@@ -42,7 +57,10 @@ export const generatePaginationLinks = (currentPage: number, totalPages: number,
         for (let i = totalPages - 1; i <= totalPages; i++) {
             pages.push(
                 <PaginationItem key={i}>
-                    <PaginationLink href={links[i].url} isActive={i === currentPage}>
+                    <PaginationLink
+                        href={links[i].url}
+                        isActive={i === currentPage}
+                    >
                         {i}
                     </PaginationLink>
                 </PaginationItem>,

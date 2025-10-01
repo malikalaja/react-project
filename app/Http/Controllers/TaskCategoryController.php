@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreTaskCategoryRequest;
 use App\Http\Requests\UpdateTaskCategoryRequest;
 use App\Models\TaskCategory;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class TaskCategoryController extends Controller

@@ -10,7 +10,7 @@ export default function AppLogo() {
                 <span className="mb-0.5 truncate leading-tight font-semibold text-green-800">
                     React Sample
                 </span>
-            </div >
+            </div>
         </>
     );
 }

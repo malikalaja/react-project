@@ -21,7 +21,9 @@ type CreateTaskCategoryForm = {
 export default function Create() {
     const taskCategoryName = useRef<HTMLInputElement>(null);
 
-    const { data, setData, errors, post, reset, processing } = useForm<Required<CreateTaskCategoryForm>>({
+    const { data, setData, errors, post, reset, processing } = useForm<
+        Required<CreateTaskCategoryForm>
+    >({
         name: '',
     });
 
