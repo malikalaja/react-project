@@ -43,26 +43,27 @@ type DashboardProps = {
 };
 
 const NEUTRAL_SWATCHES = [
-    'var(--color-foreground)',
-    'color-mix(in srgb, var(--color-foreground) 70%, var(--color-background))',
-    'color-mix(in srgb, var(--color-foreground) 45%, var(--color-background))',
+    'color-mix(in srgb, var(--color-foreground) 90%, transparent)',
+    'color-mix(in srgb, var(--color-foreground) 65%, transparent)',
+    'color-mix(in srgb, var(--color-foreground) 45%, transparent)',
     'color-mix(in srgb, var(--color-foreground) 30%, transparent)',
-    'color-mix(in srgb, var(--color-foreground) 20%, transparent)',
+    'color-mix(in srgb, var(--color-foreground) 18%, transparent)',
 ];
 
-const FALLBACK_COLOR = 'var(--color-border)';
+const FALLBACK_COLOR = 'color-mix(in srgb, var(--color-foreground) 40%, transparent)';
 
 const tooltipStyle: CSSProperties = {
     backgroundColor: 'var(--color-card)',
     borderRadius: 'calc(var(--radius) + 6px)',
-    border: '1px solid var(--color-border)',
+    border: '1px solid color-mix(in srgb, var(--color-border) 65%, transparent)',
     color: 'var(--color-foreground)',
     padding: '0.75rem 1rem',
-    boxShadow: '0px 18px 40px -28px rgba(15, 15, 15, 0.35)',
+    boxShadow: '0px 18px 40px -28px color-mix(in srgb, var(--color-foreground) 35%, transparent)',
 };
 
 const legendStyle: CSSProperties = {
-    color: 'var(--color-muted-foreground)',
+    color: 'color-mix(in srgb, var(--color-muted-foreground) 90%, transparent)',
+    fontSize: '0.75rem',
 };
 
 export default function Dashboard({
@@ -76,15 +77,20 @@ export default function Dashboard({
             : [];
         const dataset = completedVsPendingTaskChart?.datasets?.[0];
         const values = Array.isArray(dataset?.data) ? dataset?.data : [];
-        const background = dataset?.backgroundColor;
 
         const colors = labels.map((_, idx) => {
-            if (Array.isArray(background)) {
-                return background[idx] ?? NEUTRAL_SWATCHES[idx % NEUTRAL_SWATCHES.length];
+            if (Array.isArray(dataset?.backgroundColor)) {
+                const swatch = dataset.backgroundColor[idx];
+                if (typeof swatch === 'string' && (swatch.includes('var(') || swatch.includes('color-mix'))) {
+                    return swatch;
+                }
             }
 
-            if (typeof background === 'string' && background.trim().length > 0) {
-                return background;
+            if (typeof dataset?.backgroundColor === 'string') {
+                const swatch = dataset.backgroundColor;
+                if (swatch.includes('var(') || swatch.includes('color-mix')) {
+                    return swatch;
+                }
             }
 
             return NEUTRAL_SWATCHES[idx % NEUTRAL_SWATCHES.length];
@@ -113,39 +119,131 @@ export default function Dashboard({
         const background = primaryTasksDataset?.backgroundColor;
 
         if (Array.isArray(background)) {
-            return background[0] ?? FALLBACK_COLOR;
+            const swatch = background[0];
+            if (typeof swatch === 'string' && (swatch.includes('var(') || swatch.includes('color-mix'))) {
+                return swatch;
+            }
         }
 
         if (typeof background === 'string' && background.trim().length > 0) {
-            return background;
+            if (background.includes('var(') || background.includes('color-mix')) {
+                return background;
+            }
         }
 
-        return 'var(--color-foreground)';
+        return 'color-mix(in srgb, var(--color-foreground) 80%, transparent)';
     }, [primaryTasksDataset?.backgroundColor]);
 
     const barLegendLabel = primaryTasksDataset?.label ?? 'Tasks';
 
+    const totalTasks = pieChartData.reduce((sum, item) => sum + item.value, 0);
+    const completedTasks =
+        pieChartData.find((item) => item.name.toLowerCase().includes('complete'))?.value ?? 0;
+    const inProgressTasks = Math.max(totalTasks - completedTasks, 0);
+    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const completionProgressWidth = `${Math.min(Math.max(completionRate, 0), 100)}%`;
+    const activeRatio = totalTasks > 0 ? Math.round((inProgressTasks / totalTasks) * 100) : 0;
+
+    const busiestDay = barChartData.reduce(
+        (peak, entry) => (entry.count > peak.count ? entry : peak),
+        { day: '', count: 0 },
+    );
+    const busiestDaySummary = busiestDay.count
+        ? `${busiestDay.day} leads with ${busiestDay.count} ${busiestDay.count === 1 ? 'task' : 'tasks'}.`
+        : 'Weekly activity will appear once tasks are created.';
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
-            <section className="flex flex-col gap-8">
+            <section className="flex flex-col gap-8 my-5">
                 <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div className="space-y-1">
                         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboard</h1>
                         <p className="text-sm text-muted-foreground">
-                            Overview your task progress, due work, and creation cadence with the latest updates.
+                            Keep tabs on throughput, remaining workload, and momentum across the week.
                         </p>
                     </div>
                 </header>
-                <div className="grid gap-6 md:grid-cols-3">
-                    <Card className="min-h-[320px]">
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <Card className="relative overflow-hidden after:pointer-events-none after:absolute after:inset-x-4 after:top-3 after:h-24 after:rounded-b-[999px] after:bg-[radial-gradient(circle,_color-mix(in_srgb,_var(--color-foreground)_14%,_transparent)_0%,_transparent_75%)] after:content-[''] after:-z-10">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Completed tasks
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-3xl font-semibold tracking-tight text-foreground">
+                                {completedTasks}
+                            </p>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                <div
+                                    className="h-full rounded-full transition-all duration-300"
+                                    style={{
+                                        width: completionProgressWidth,
+                                        background: 'color-mix(in srgb, var(--color-foreground) 80%, transparent)',
+                                    }}
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {completionRate}% complete{totalTasks ? ` � ${totalTasks} total tasks` : ''}
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                In progress
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <p className="text-3xl font-semibold tracking-tight text-foreground">
+                                {inProgressTasks}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {totalTasks
+                                    ? `${activeRatio}% of the current workload remains active.`
+                                    : 'No active tasks right now.'}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[color-mix(in_srgb,_var(--color-foreground)_70%,_transparent)]" />
+                                {totalTasks
+                                    ? 'Continue chipping away to hit 100% completion.'
+                                    : 'Create tasks to populate your week.'}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-6 before:bottom-0 before:h-20 before:rounded-t-[999px] before:bg-[radial-gradient(circle,_color-mix(in_srgb,_var(--color-foreground)_12%,_transparent)_0%,_transparent_70%)] before:content-[''] before:-z-10">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Due today
+                            </CardTitle>
+                            <CardDescription>Focus on anything that needs attention before midnight.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <p className="text-4xl font-semibold tracking-tight text-foreground">
+                                {pendingTasksToday}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {pendingTasksToday === 0
+                                    ? 'You are clear for the day�great work.'
+                                    : 'Stay on pace to wrap these up on time.'}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-12">
+                    <Card className="min-h-[340px] lg:col-span-5">
                         <CardHeader>
                             <CardTitle>Completion status</CardTitle>
                             <CardDescription>Completed vs in-progress tasks.</CardDescription>
                         </CardHeader>
                         <CardContent className="h-full">
                             {pieChartData.length ? (
-                                <div className="h-[220px] w-full md:h-[240px]">
+                                <div className="h-[220px] w-full md:h-[260px]">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
                                             <Pie
@@ -154,7 +252,7 @@ export default function Dashboard({
                                                 nameKey="name"
                                                 innerRadius="55%"
                                                 outerRadius="80%"
-                                                stroke="var(--color-card)"
+                                                stroke="color-mix(in srgb, var(--color-foreground) 12%, transparent)"
                                                 strokeWidth={1}
                                             >
                                                 {pieChartData.map((entry, idx) => (
@@ -163,7 +261,11 @@ export default function Dashboard({
                                             </Pie>
                                             <RechartsTooltip
                                                 contentStyle={tooltipStyle}
-                                                cursor={{ fill: 'color-mix(in srgb, var(--color-muted) 35%, transparent)' }}
+                                                cursor={{
+                                                    fill: 'color-mix(in srgb, var(--color-muted) 35%, transparent)',
+                                                }}
+                                                labelStyle={{ color: 'var(--color-foreground)' }}
+                                                itemStyle={{ color: 'var(--color-foreground)' }}
                                             />
                                             <RechartsLegend wrapperStyle={legendStyle} iconType="circle" />
                                         </PieChart>
@@ -176,45 +278,54 @@ export default function Dashboard({
                             )}
                         </CardContent>
                     </Card>
-                    <Card className="justify-between">
-                        <CardHeader>
-                            <CardTitle>Tasks due today</CardTitle>
-                            <CardDescription>Keep your workload on schedule.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-1 flex-col justify-center gap-6">
-                            <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Open tasks</p>
-                            <p className="text-5xl font-semibold text-foreground">{pendingTasksToday}</p>
-                            <p className="text-sm text-muted-foreground">Due before the day ends.</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="min-h-[320px]">
+
+                    <Card className="min-h-[340px] lg:col-span-7">
                         <CardHeader>
                             <CardTitle>Weekly output</CardTitle>
-                            <CardDescription>Tasks created per weekday.</CardDescription>
+                            <CardDescription>
+                                {barChartData.length ? busiestDaySummary : 'No tasks created this week.'}
+                            </CardDescription>
                         </CardHeader>
                         <CardContent className="h-full">
                             {barChartData.length ? (
-                                <div className="h-[220px] w-full md:h-[240px]">
+                                <div className="h-[220px] w-full md:h-[260px]">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={barChartData}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--color-border) 55%, transparent)" />
+                                            <CartesianGrid
+                                                strokeDasharray="3 3"
+                                                stroke="color-mix(in srgb, var(--color-border) 55%, transparent)"
+                                            />
                                             <XAxis
                                                 dataKey="day"
-                                                tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }}
-                                                axisLine={{ stroke: 'var(--color-border)' }}
+                                                tick={{
+                                                    fill: 'color-mix(in srgb, var(--color-muted-foreground) 85%, transparent)',
+                                                    fontSize: 12,
+                                                }}
+                                                axisLine={{
+                                                    stroke: 'color-mix(in srgb, var(--color-border) 65%, transparent)',
+                                                }}
                                                 tickLine={false}
                                             />
                                             <YAxis
-                                                tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }}
-                                                axisLine={{ stroke: 'var(--color-border)' }}
+                                                tick={{
+                                                    fill: 'color-mix(in srgb, var(--color-muted-foreground) 85%, transparent)',
+                                                    fontSize: 12,
+                                                }}
+                                                axisLine={{
+                                                    stroke: 'color-mix(in srgb, var(--color-border) 65%, transparent)',
+                                                }}
                                                 tickLine={false}
                                                 allowDecimals={false}
                                             />
                                             <RechartsTooltip
                                                 contentStyle={tooltipStyle}
-                                                cursor={{ fill: 'color-mix(in srgb, var(--color-muted) 25%, transparent)' }}
+                                                cursor={{
+                                                    fill: 'color-mix(in srgb, var(--color-muted) 25%, transparent)',
+                                                }}
+                                                labelStyle={{ color: 'var(--color-foreground)' }}
+                                                itemStyle={{ color: 'var(--color-foreground)' }}
                                             />
-                                            <RechartsLegend wrapperStyle={legendStyle} iconType="plainline" />
+                                            <RechartsLegend wrapperStyle={legendStyle} iconType="circle" />
                                             <Bar dataKey="count" name={barLegendLabel} fill={barFill} radius={[8, 8, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
