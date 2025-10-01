@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Head, useForm } from '@inertiajs/react'; //Link, router,
+import { Button } from '@/components/ui/button'; //, buttonVariants
 import { route } from 'ziggy-js';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';

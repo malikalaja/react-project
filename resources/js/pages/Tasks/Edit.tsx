@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Head, router, useForm } from '@inertiajs/react'; //, Link
+import { Button } from '@/components/ui/button'; //, buttonVariants
 import { route } from 'ziggy-js';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -9,12 +9,12 @@ import { FormEventHandler, useRef } from 'react';
 import { BreadcrumbItem, Task, TaskCategory } from '@/types';
 import { Switch } from '@/components/ui/switch';
 import * as React from "react"
-import { ChevronDownIcon } from "lucide-react"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
+// import { ChevronDownIcon } from "lucide-react"
+// import {
+//     Popover,
+//     PopoverContent,
+//     PopoverTrigger,
+// } from "@/components/ui/popover"
 import { DatePickerField } from "@/components/datePicker/date-picker";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 type EditTaskForm = {
@@ -31,7 +31,7 @@ export default function Edit({ task, categories }: { task: Task, categories: Tas
         { title: 'Edit Task', href: route('tasks.edit', task.id) },
     ];
     const taskName = useRef<HTMLInputElement | null>(null);
-    const { data, setData, errors, put, reset, processing, progress } = useForm<Required<EditTaskForm>>({
+    const { data, setData, errors, reset, processing, progress } = useForm<Required<EditTaskForm>>({ //, put
         name: task.name,
         is_completed: task.is_completed,
         due_date: task.due_date ?? null,
@@ -60,7 +60,7 @@ export default function Edit({ task, categories }: { task: Task, categories: Tas
         );
     };
 
-    const [open, setOpen] = React.useState(false)
+    //const [open, setOpen] = React.useState(false)
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Task" />

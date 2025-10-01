@@ -6,9 +6,9 @@ import { route } from 'ziggy-js';
 import {
     Table,
     TableBody,
-    TableCaption,
+    //TableCaption,
     TableCell,
-    TableFooter,
+    //TableFooter,
     TableHead,
     TableHeader,
     TableRow,

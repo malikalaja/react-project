@@ -6,7 +6,7 @@ type PaginationLink = {
     label: string;
 }
 
-export const generatePaginationLinks = (currentPage: number, totalPages: number, path: string, links: PaginationLink[], pageQuery: string = '?page=') => {
+export const generatePaginationLinks = (currentPage: number, totalPages: number, path: string, links: PaginationLink[]) => {
     const pages: JSX.Element[] = [];
     if (totalPages <= 6) {
         for (let i = 1; i <= totalPages; i++) {
