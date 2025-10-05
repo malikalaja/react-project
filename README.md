@@ -270,6 +270,192 @@ RUN npm run build
 
 ---
 
+## 6A) EC2 (Ubuntu 24.04 LTS) + NGINX + PHP‑FPM 8.4 (No Docker)
+
+This profile is for a classic VM deployment on **Amazon EC2** with **NGINX** reverse proxy and **PHP‑FPM 8.4**. We recommend Ubuntu 24.04 LTS because PHP 8.4 packaging is straightforward via `ppa:ondrej/php`. (If you must use Amazon Linux, install PHP 8.4 via Remi or build from source.)
+
+### 6A.1 Provisioning
+
+* **EC2**: t3.medium+ (adjust by traffic), Ubuntu 24.04 LTS AMI.
+* **Security Group**: allow 22 (SSH), 80 (HTTP), 443 (HTTPS). Restrict 3306 (MySQL) to VPC/private only.
+* **DNS**: point `A`/`AAAA` records to the EC2 public IP or, preferably, an Elastic IP.
+* **MySQL 8.4**: prefer **Amazon RDS** (recommended). If running on the instance, ensure automated backups and EBS gp3.
+
+### 6A.2 System Setup (run as root)
+
+```bash
+apt update && apt -y upgrade
+apt -y install software-properties-common git unzip curl
+a dd-apt-repository ppa:ondrej/php -y
+apt update
+apt -y install nginx php8.4-fpm php8.4-cli php8.4-mbstring php8.4-xml \
+  php8.4-curl php8.4-zip php8.4-intl php8.4-gd php8.4-mysql \
+  redis-server supervisor
+
+# Composer
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+rm composer-setup.php
+
+# Node 22 (via Nodesource)
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt -y install nodejs
+
+# Create deploy user
+useradd -m -s /bin/bash deploy || true
+usermod -aG www-data deploy
+mkdir -p /var/www/app && chown -R deploy:www-data /var/www/app
+```
+
+### 6A.3 NGINX vhost
+
+Create `/etc/nginx/sites-available/app.conf`:
+
+```nginx
+server {
+    listen 80;
+    server_name example.com;
+
+    root /var/www/app/public;
+    index index.php index.html;
+
+    # Static assets (built by Vite to public/build)
+    location /build/ {
+        access_log off;
+        expires 365d;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+    client_max_body_size 50m;
+}
+```
+
+Enable and test:
+
+```bash
+ln -s /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled/app.conf
+nginx -t && systemctl reload nginx
+```
+
+### 6A.4 PHP‑FPM tuning
+
+`/etc/php/8.4/fpm/php.ini` (key entries):
+
+```
+memory_limit = 512M
+post_max_size = 50M
+upload_max_filesize = 50M
+opcache.enable = 1
+opcache.enable_cli = 1
+opcache.validate_timestamps = 0
+opcache.max_accelerated_files = 20000
+```
+
+Reload: `systemctl reload php8.4-fpm`.
+
+### 6A.5 Directory layout & permissions
+
+```bash
+# As deploy user
+sudo -iu deploy
+cd /var/www/app
+# First time: clone or extract artifact shipped by CI
+# git clone git@github.com:org/repo.git .
+
+# .env from SSM or secret store → write to /var/www/app/.env
+
+composer install --no-dev --prefer-dist --no-interaction
+php artisan key:generate --force
+npm ci && npm run build
+php artisan storage:link
+
+# Permissions
+find storage -type d -exec chmod 775 {} \;
+find storage -type f -exec chmod 664 {} \;
+find bootstrap/cache -type d -exec chmod 775 {} \;
+chown -R deploy:www-data storage bootstrap/cache
+```
+
+### 6A.6 Supervisor (queues) & Cron (scheduler)
+
+**Supervisor program** `/etc/supervisor/conf.d/laravel-queue.conf`:
+
+```ini
+[program:laravel-queue]
+command=/usr/bin/php /var/www/app/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+user=deploy
+directory=/var/www/app
+stdout_logfile=/var/log/supervisor/queue.log
+stderr_logfile=/var/log/supervisor/queue_error.log
+```
+
+Enable: `systemctl enable --now supervisor && supervisorctl reread && supervisorctl update`.
+
+**Cron for scheduler** (as root): `crontab -e`
+
+```
+* * * * * cd /var/www/app && /usr/bin/php artisan schedule:run >> /var/log/laravel-scheduler.log 2>&1
+```
+
+### 6A.7 SSL (Let’s Encrypt)
+
+```bash
+apt -y install certbot python3-certbot-nginx
+certbot --nginx -d example.com --redirect -m admin@example.com --agree-tos --non-interactive
+```
+
+### 6A.8 Zero‑downtime deploy (rsync + symlinks)
+
+Use a releases structure:
+
+```
+/var/www/app
+  ├── current -> /var/www/app/releases/2025-10-05_110000
+  ├── releases/
+  └── shared/ (.env, storage)
+```
+
+**Deploy script (run from CI via SSH):**
+
+```bash
+set -e
+APP_DIR=/var/www/app
+REL=\"$(date +%F_%H%M%S)\"
+mkdir -p $APP_DIR/releases/$REL
+rsync -az --delete --exclude node_modules --exclude .git ./ $APP_DIR/releases/$REL/
+cd $APP_DIR/releases/$REL
+ln -sfn $APP_DIR/shared/.env .env
+ln -sfn $APP_DIR/shared/storage storage
+composer install --no-dev --prefer-dist --no-interaction
+npm ci && npm run build
+php artisan config:cache && php artisan route:cache && php artisan view:cache
+php artisan migrate --force
+ln -sfn $APP_DIR/releases/$REL $APP_DIR/current
+# Reload services
+systemctl reload nginx
+supervisorctl restart laravel-queue
+```
+
+### 6A.9 Observability
+
+* Forward logs via CloudWatch Agent or Vector (NGINX access/error, php-fpm, app logs).
+* Uptime checks hit `/healthz`.
+
+---
+
 ## 6) docker-compose (prod-ish)
 
 ```yaml
@@ -627,4 +813,3 @@ export default defineConfig({
 
 ---
 
-**Questions or improvements?** Open a PR to this file with infra specifics (cloud provider, registry, network, TLS).
